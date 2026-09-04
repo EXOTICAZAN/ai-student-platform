@@ -1,0 +1,26 @@
+{
+  "name": "ai-student-platform",
+  "version": "1.0.0",
+  "description": "AI-powered MERN web app for Pakistani students",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "mern",
+    "ai",
+    "gemini",
+    "education",
+    "pakistan"
+  ],
+  "author": "",
+  "license": "ISC"
+}
