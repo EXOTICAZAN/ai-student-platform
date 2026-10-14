@@ -19,10 +19,26 @@ export function clampInt(
   return Math.min(max, Math.max(min, Math.trunc(parsed)));
 }
 
-/** Parses a JSON body, returning null instead of throwing on malformed input. */
-export async function readJson<T>(request: Request): Promise<T | null> {
+export const MAX_JSON_BODY_BYTES = 256 * 1024;
+
+/**
+ * Parse a JSON body without allowing an unbounded request to be buffered.
+ * Callers intentionally receive null for malformed or oversized JSON so the
+ * existing bad-request behavior remains stable.
+ */
+export async function readJson<T>(
+  request: Request,
+  maxBytes = MAX_JSON_BODY_BYTES
+): Promise<T | null> {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength && Number.isFinite(Number(declaredLength)) && Number(declaredLength) > maxBytes) {
+    return null;
+  }
+
   try {
-    return (await request.json()) as T;
+    const bytes = await request.arrayBuffer();
+    if (bytes.byteLength > maxBytes) return null;
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
   } catch {
     return null;
   }

@@ -52,9 +52,14 @@ npm install
 cp .env.example .env.local
 ```
 
-Fill in `.env.local`. You need a Supabase project URL + anon key and a Groq API
-key at minimum. See `.env.example` for what each variable does and which ones are
-optional.
+Fill in `.env.local`. The required runtime values are `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GROQ_API_KEY`. Production deployments also
+need `NEXT_PUBLIC_SITE_URL` set to the public HTTPS origin. Server-only features
+such as account deletion and `npm run reembed` additionally require
+`SUPABASE_SERVICE_ROLE_KEY`; do not expose it to the browser. The app does not
+silently substitute missing credentials: check the server logs and the health
+endpoint after startup if a feature is unavailable. See `.env.example` for every
+variable and its scope.
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only and bypasses Row Level Security. Never
 prefix it with `NEXT_PUBLIC_` and never import it into a client component.
@@ -143,7 +148,7 @@ Open http://localhost:3000.
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
 | `npm run lint` | Run ESLint |
-| `npm run reembed` | Regenerate chunk embeddings after an embedding-model change (see below) |
+| `npm run reembed` | Regenerate chunk embeddings after an embedding-model change (requires service role; see below) |
 | `npm test` | Unit tests (Vitest): SM-2, scholarship matching and status, JSON extraction, rate limiter, request guards |
 | `npx tsc --noEmit` | Typecheck |
 
@@ -161,9 +166,12 @@ npm run reembed                # only chunks with a NULL embedding
 npm run reembed -- --all       # every chunk
 ```
 
-The script imports `lib/ai/embeddings.ts` directly, so it can never drift from
-what the running app produces. It needs `SUPABASE_SERVICE_ROLE_KEY`, because Row
-Level Security would otherwise hide other users' chunks from the backfill.
+The script runs through `tsx` and imports `lib/ai/embeddings.ts` directly, so it
+cannot drift from what the running app produces. It needs
+`SUPABASE_SERVICE_ROLE_KEY`, because Row Level Security would otherwise hide
+other users' chunks from the backfill. Use `npm run reembed -- --dry-run` first;
+never run it against a production database until the matching vector migration
+has been applied.
 
 ## Project structure
 

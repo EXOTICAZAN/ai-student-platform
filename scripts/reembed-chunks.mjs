@@ -21,7 +21,7 @@ import { config } from "dotenv";
 config({ path: new URL("../.env.local", import.meta.url) });
 
 const { createEmbeddings, DIMENSIONS } = await import(
-  "../lib/ai/embeddings.ts"
+  new URL("../lib/ai/embeddings.ts", import.meta.url).href
 );
 
 const EMBED_BATCH = 32;

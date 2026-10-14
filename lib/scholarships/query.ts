@@ -404,7 +404,11 @@ export async function getScholarshipsWithRequirements(
     .eq("is_active", true);
 
   if (ids && ids.length > 0) {
-    query = query.in("id", ids);
+    query = query.in("id", ids.slice(0, 5));
+  } else {
+    // The advisor only needs a small candidate set; avoid loading the entire
+    // requirements graph into memory when no scholarships were selected.
+    query = query.limit(100);
   }
 
   const { data, error } = await query;

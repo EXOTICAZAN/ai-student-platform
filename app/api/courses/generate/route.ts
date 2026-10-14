@@ -3,15 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/ai/groq";
 import { consume, tooManyRequests } from "@/lib/api/rateLimit";
 import { normalizeGeneratedCourse } from "@/lib/courses/types";
+import { readJson } from "@/lib/api/guard";
 
 export async function POST(request: Request) {
+  let createdCourseId: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ data: null, error: { code: "unauthorized", message: "Sign in required." } }, { status: 401 });
     const limit = await consume("course_generate", user.id, 5);
     if (!limit.ok) return tooManyRequests(limit.retryAfterMs);
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = await readJson<Record<string, unknown>>(request);
     const interests = Array.isArray(body?.interests) ? body?.interests.filter((v): v is string => typeof v === "string").map(v => v.trim().slice(0, 80)).filter(Boolean).slice(0, 10) : [];
     const goal = typeof body?.goal === "string" ? body.goal.trim().slice(0, 500) : "";
     const skillLevel = typeof body?.skillLevel === "string" ? body.skillLevel : "beginner";
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
     const course = normalizeGeneratedCourse(raw, topic);
     const { data: created, error } = await supabase.from("courses").insert({ user_id: user.id, profile_user_id: user.id, title: course.title, description: course.description, skill_level: course.skill_level, estimated_duration: course.estimated_duration }).select("id").single();
     if (error || !created) throw error ?? new Error("course insert failed");
+    createdCourseId = created.id;
     for (const [moduleIndex, module] of course.modules.entries()) {
       const { data: createdModule, error: moduleError } = await supabase.from("course_modules").insert({ course_id: created.id, position: moduleIndex, title: module.title, description: module.description }).select("id").single();
       if (moduleError || !createdModule) throw moduleError ?? new Error("module insert failed");
@@ -35,6 +38,16 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ data: { id: created.id }, error: null });
   } catch (error) {
+    if (createdCourseId) {
+      // The schema cascades module/video rows, but explicitly deleting the
+      // course keeps retries safe even if an older deployment lacks cascades.
+      const cleanupClient = await createClient();
+      const { error: cleanupError } = await cleanupClient
+        .from("courses")
+        .delete()
+        .eq("id", createdCourseId);
+      if (cleanupError) console.error("/api/courses/generate cleanup:", cleanupError);
+    }
     console.error("/api/courses/generate:", error);
     return NextResponse.json({ data: null, error: { code: "server_error", message: "We could not create your course right now." } }, { status: 500 });
   }

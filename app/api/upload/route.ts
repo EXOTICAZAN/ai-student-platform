@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extractPdfText } from "@/lib/pdf/extractText";
-import { ingestDocument } from "@/lib/rag/ingestDocument";
+import { ingestDocument, withDocumentIngestionLock } from "@/lib/rag/ingestDocument";
 import { consume, tooManyRequests } from "@/lib/api/rateLimit";
 
 // The whole file is buffered in memory before parsing, so an uncapped upload
@@ -213,11 +213,13 @@ export async function POST(req: Request) {
     // first-run model download), the chat is left exactly as it was.
     let ingestionResult: Awaited<ReturnType<typeof ingestDocument>>;
     try {
-      ingestionResult = await ingestDocument(
-        document.id,
-        user.id,
-        buffer,
-        extractedText
+      ingestionResult = await withDocumentIngestionLock(document.id, () =>
+        ingestDocument(
+          document.id,
+          user.id,
+          buffer,
+          extractedText
+        )
       );
     } catch (ingestError) {
       console.error("Ingestion failed:", ingestError);

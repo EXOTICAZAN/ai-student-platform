@@ -3,6 +3,20 @@ import { extractPdfText } from "@/lib/pdf/extractText";
 import { splitIntoChunks } from "@/lib/chunking/splitter";
 import { createEmbeddings } from "@/lib/ai/embeddings";
 
+// Best-effort single-process lock. A database advisory lock would require a
+// migration/RPC that this project does not currently have; this prevents the
+// common duplicate-trigger race on one Next.js instance without inventing a schema.
+const activeDocuments = new Set<string>();
+
+export async function withDocumentIngestionLock<T>(
+  documentId: string,
+  work: () => Promise<T>
+): Promise<T> {
+  if (activeDocuments.has(documentId)) throw new Error("Document is already being processed");
+  activeDocuments.add(documentId);
+  try { return await work(); } finally { activeDocuments.delete(documentId); }
+}
+
 export async function ingestDocument(
   documentId: string,
   userId: string,

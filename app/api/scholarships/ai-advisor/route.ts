@@ -8,6 +8,7 @@ import {
 import { matchScholarship } from "@/lib/scholarships/matching";
 import { z } from "zod";
 import { consume } from "@/lib/api/rateLimit";
+import { readJson } from "@/lib/api/guard";
 import type { AIAdvisorResponse } from "@/lib/scholarships/types";
 
 const RequestSchema = z.object({
@@ -101,10 +102,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson<unknown>(request);
+  if (body === null) {
     return NextResponse.json(
       { data: null, error: { code: "BAD_REQUEST", message: "Invalid JSON body" } },
       { status: 400 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ingestDocument } from "@/lib/rag/ingestDocument";
+import { ingestDocument, withDocumentIngestionLock } from "@/lib/rag/ingestDocument";
 import { isUuid, readJson } from "@/lib/api/guard";
 import { consume, tooManyRequests } from "@/lib/api/rateLimit";
 
@@ -65,12 +65,22 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Process document
-    const result = await ingestDocument(
-      document.id,
-      user.id,
-      buffer
-    );
+    // Process document. Reject duplicate work instead of racing chunk deletion
+    // and reinsertion for the same document.
+    let result: Awaited<ReturnType<typeof ingestDocument>>;
+    try {
+      result = await withDocumentIngestionLock(document.id, () =>
+        ingestDocument(document.id, user.id, buffer)
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message === "Document is already being processed") {
+        return NextResponse.json(
+          { error: "This document is already being processed." },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "reembed": "node scripts/reembed-chunks.mjs",
+    "reembed": "tsx scripts/reembed-chunks.mjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -46,6 +46,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.11"
   }

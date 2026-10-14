@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampInt, isUuid } from "@/lib/api/guard";
+import { clampInt, isUuid, readJson } from "@/lib/api/guard";
 
 describe("clampInt", () => {
   it("falls back for missing or non-numeric input", () => {
@@ -13,6 +13,23 @@ describe("clampInt", () => {
     expect(clampInt("999", 1, 50, 12)).toBe(50);
     expect(clampInt("-5", 1, 50, 12)).toBe(1);
     expect(clampInt("7.9", 1, 50, 12)).toBe(7);
+  });
+});
+
+describe("readJson", () => {
+  it("rejects oversized JSON before parsing", async () => {
+    const request = new Request("http://localhost", {
+      method: "POST",
+      body: JSON.stringify({ value: "x".repeat(300) }),
+    });
+    await expect(readJson(request, 100)).resolves.toBeNull();
+  });
+
+  it("parses valid JSON", async () => {
+    const request = new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ ok: true }),
+    });
+    await expect(readJson<{ ok: boolean }>(request)).resolves.toEqual({ ok: true });
   });
 });
 
