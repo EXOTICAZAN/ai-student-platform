@@ -1,0 +1,13 @@
+EduForge AI bilingual overlay update
+
+1. Open your existing MAIN project folder, the folder containing package.json.
+2. Extract this zip directly INTO that folder.
+3. Choose Replace/Overwrite when prompted.
+4. Do not extract beside the project or into a new nested folder.
+5. Run: npm install
+6. Apply Supabase migrations 007, 008, and 009 if they have not already been applied.
+7. No new migration is required for English/Urdu; it reuses profiles.preferred_language.
+
+The dashboard now has an English/اردو toggle. Urdu changes the dashboard direction to RTL and instructs the AI tutor to respond in Urdu while preserving code, formulas, URLs, and citations.
+
+This archive contains only changed files with the same relative paths as the main project.
