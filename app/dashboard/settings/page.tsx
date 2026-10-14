@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import SettingsClient from "@/components/settings/SettingsClient";
 import type { ProfileRow, UserSettingsRow } from "@/lib/study/types";
 import {
-  TAB_IDS,
   type ProfileData,
   type SettingsData,
   type TabId,
@@ -14,6 +13,11 @@ export const metadata = { title: "Settings — EduForge AI" };
 const DEFAULT_SETTINGS: SettingsData = {
   daily_goal_minutes: 60,
 };
+
+// Keep server-side route validation independent from the client module. A
+// runtime import of a value from a "use client" module becomes a client
+// reference proxy during the server build and cannot be called with .includes.
+const VALID_TAB_IDS: readonly TabId[] = ["profile", "preferences", "account"];
 
 export default async function SettingsPage({
   searchParams,
@@ -29,7 +33,7 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const { tab } = await searchParams;
-  const initialTab: TabId = TAB_IDS.includes(tab as TabId)
+  const initialTab: TabId = VALID_TAB_IDS.includes(tab as TabId)
     ? (tab as TabId)
     : "profile";
 
