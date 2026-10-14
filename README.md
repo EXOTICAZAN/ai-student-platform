@@ -64,6 +64,18 @@ variable and its scope.
 `SUPABASE_SERVICE_ROLE_KEY` is server-only and bypasses Row Level Security. Never
 prefix it with `NEXT_PUBLIC_` and never import it into a client component.
 
+#### YouTube lesson videos
+
+Course generation optionally uses the YouTube Data API v3 to replace AI-suggested
+links with validated, embeddable video URLs (`https://www.youtube.com/watch?v=...`).
+Create an API key in Google Cloud with YouTube Data API v3 enabled and set
+`YOUTUBE_API_KEY` in `.env.local` (and in your deployment's server environment).
+It is deliberately server-only: never use a `NEXT_PUBLIC_` prefix or read it from
+a client component. Searches are bounded to 24 lessons per generated course to
+protect quota. If the key is missing, quota is exhausted, or a response is
+invalid, the app keeps the existing safe YouTube search URL and still creates the
+course. The player and a direct Watch video link are shown for exact video URLs.
+
 Embeddings need no key — the model is downloaded on first use into
 `~/.cache/eduforge-embeddings` (about 85 MB) and cached from then on. It lives
 outside the project on purpose: Turbopack traces every file under the project

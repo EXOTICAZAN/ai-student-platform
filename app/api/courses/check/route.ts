@@ -52,16 +52,36 @@ export async function POST(request: Request) {
 
     const { error: checkError } = await supabase.from("course_checks").insert({ user_id: user.id, course_id: session.course_id, module_id: session.module_id, video_id: session.video_id, questions: sanitizeCheckQuestions(questions), answers: body.answers, score: grade.score, passed: grade.passed });
     if (checkError) throw checkError;
-    if (grade.passed) await supabase.from("course_progress").upsert({ user_id: user.id, course_id: session.course_id, module_id: session.module_id, video_id: session.video_id }, { onConflict: "user_id,video_id" });
-    const { count } = await supabase.from("course_videos").select("id,course_modules!inner(course_id)", { count: "exact", head: true }).eq("course_modules.course_id", session.course_id);
-    const { count: completed } = await supabase.from("course_progress").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("course_id", session.course_id);
-    let certificate = null;
-    if (grade.passed && count && completed === count) {
-      const { data: course } = await supabase.from("courses").select("title").eq("id", session.course_id).eq("user_id", user.id).single();
-      const { data: cert } = await supabase.from("course_certificates").upsert({ user_id: user.id, course_id: session.course_id, certificate_id: `EF-${Date.now().toString(36).toUpperCase()}-${user.id.slice(0, 6).toUpperCase()}`, student_name: String(user.user_metadata?.full_name ?? user.email ?? "Student") }, { onConflict: "user_id,course_id" }).select("*").single();
-      certificate = cert ?? (course ? { course_title: course.title } : null);
+    if (grade.passed) {
+      const { error: progressError } = await supabase.from("course_progress").upsert({ user_id: user.id, course_id: session.course_id, module_id: session.module_id, video_id: session.video_id }, { onConflict: "user_id,video_id" });
+      if (progressError) throw progressError;
     }
-    return NextResponse.json({ data: { score: grade.score, passed: grade.passed, certificate }, error: null });
+
+    // Read IDs rather than relying on nullable head counts. This also avoids
+    // duplicate progress rows inflating completion after older deployments.
+    const [{ data: videoRows, error: videosError }, { data: progressRows, error: progressReadError }] = await Promise.all([
+      supabase.from("course_videos").select("id,course_modules!inner(course_id)").eq("course_modules.course_id", session.course_id),
+      supabase.from("course_progress").select("video_id").eq("user_id", user.id).eq("course_id", session.course_id),
+    ]);
+    if (videosError || progressReadError) throw videosError ?? progressReadError;
+    const videoIds = new Set((videoRows ?? []).map((row) => row.id));
+    const completedIds = new Set((progressRows ?? []).map((row) => row.video_id).filter((id) => videoIds.has(id)));
+    let certificate = null;
+    if (grade.passed && videoIds.size > 0 && completedIds.size === videoIds.size) {
+      const { data: course, error: courseError } = await supabase.from("courses").select("title").eq("id", session.course_id).eq("user_id", user.id).single();
+      if (courseError || !course) throw courseError ?? new Error("course not found");
+      const { data: existing, error: existingError } = await supabase.from("course_certificates").select("*").eq("user_id", user.id).eq("course_id", session.course_id).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) {
+        certificate = existing;
+      } else {
+        const certificateId = `EF-${session.course_id.slice(0, 8).toUpperCase()}-${user.id.slice(0, 6).toUpperCase()}`;
+        const { data: cert, error: certificateError } = await supabase.from("course_certificates").upsert({ user_id: user.id, course_id: session.course_id, certificate_id: certificateId, student_name: String(user.user_metadata?.full_name ?? user.email ?? "Student") }, { onConflict: "user_id,course_id" }).select("*").single();
+        if (certificateError) throw certificateError;
+        certificate = cert;
+      }
+    }
+    return NextResponse.json({ data: { score: grade.score, passed: grade.passed, certificate, totalVideos: videoIds.size, completedVideos: completedIds.size }, error: null });
   } catch (error) {
     return serverError("/api/courses/check", error, GENERIC_ERROR);
   }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/ai/groq";
 import { consume, tooManyRequests } from "@/lib/api/rateLimit";
 import { normalizeGeneratedCourse } from "@/lib/courses/types";
+import { resolveCourseVideos } from "@/lib/courses/youtube";
 import { readJson } from "@/lib/api/guard";
 
 export async function POST(request: Request) {
@@ -23,8 +24,10 @@ export async function POST(request: Request) {
     const { error: profileError } = await supabase.from("course_profiles").upsert({ user_id: user.id, interests, goal, skill_level: skillLevel, weekly_time: weeklyTime, preferred_format: format, updated_at: new Date().toISOString() });
     if (profileError) throw profileError;
     const topic = interests.join(", ");
-    const raw = await generateJson({ systemPrompt: "You design practical courses. Return only JSON with title, description, skill_level, estimated_duration, and modules. modules is an array of title, description, and videos. Each video has title, url, duration. Video URLs must be either safe youtube.com/watch?v=... URLs you are confident exist or youtube.com/results?search_query=... URLs; prefer search URLs when unsure. Create 3-6 modules and 2-4 videos per module.", prompt: JSON.stringify({ interests, goal, skill_level: skillLevel, weekly_time: weeklyTime, format }), temperature: 0.3, maxOutputTokens: 6000 });
-    const course = normalizeGeneratedCourse(raw, topic);
+    const raw = await generateJson({ systemPrompt: "You design practical courses. Return only JSON with title, description, skill_level, estimated_duration, and modules. modules is an array of title, description, and videos. Each video has title, url, duration. The server will resolve lesson videos, so use a concise search-friendly lesson title and a safe YouTube search URL when unsure. Create 3-6 modules and 2-4 videos per module.", prompt: JSON.stringify({ interests, goal, skill_level: skillLevel, weekly_time: weeklyTime, format }), temperature: 0.3, maxOutputTokens: 6000 });
+    const generatedCourse = normalizeGeneratedCourse(raw, topic);
+    // This runs before any row is inserted. The API key is never sent to the client.
+    const course = await resolveCourseVideos(generatedCourse, topic, { apiKey: process.env.YOUTUBE_API_KEY });
     const { data: created, error } = await supabase.from("courses").insert({ user_id: user.id, profile_user_id: user.id, title: course.title, description: course.description, skill_level: course.skill_level, estimated_duration: course.estimated_duration }).select("id").single();
     if (error || !created) throw error ?? new Error("course insert failed");
     createdCourseId = created.id;
