@@ -1,6 +1,6 @@
 # Courses feature
 
-Run `supabase/migrations/008_courses.sql` after migration 007, then run `supabase/migrations/009_courses_check_sessions.sql`. Both are idempotent. The second migration creates a server-owned, single-use session store with RLS, indexes, and service-role-only access for pending knowledge checks.
+Run `supabase/migrations/008_courses.sql` after migration 007, then run `supabase/migrations/009_courses_check_sessions.sql`. Then run `supabase/migrations/011_courses_ownership_hardening.sql` to tie progress, checks and certificates to the authenticated user's course tree. Both are idempotent. The second migration creates a server-owned, single-use session store with RLS, indexes, and service-role-only access for pending knowledge checks.
 
 ## Flow
 
