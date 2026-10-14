@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Brain, Layers, HelpCircle, Trophy, NotebookPen, Calendar } from "lucide-react";
+import { Brain, Layers, HelpCircle, Trophy, NotebookPen, Calendar, Landmark } from "lucide-react";
 import { ease } from "@/lib/motion";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
@@ -13,18 +13,19 @@ const actions = [
   { href: "/dashboard/scholarships", label: "Scholarships", desc: "Find funding", icon: Trophy, gradient: "from-amber-500 to-orange-500" },
   { href: "/dashboard/notes", label: "AI Notes", desc: "Summarize", icon: NotebookPen, gradient: "from-sky-500 to-cyan-500" },
   { href: "/dashboard/planner", label: "Planner", desc: "Schedule", icon: Calendar, gradient: "from-rose-500 to-red-500" },
+  { href: "/dashboard/admissions", label: "Pakistan Admissions", desc: "Plan applications", icon: Landmark, gradient: "from-cyan-500 to-blue-500" },
 ];
 
 export default function QuickActions() {
   const { t } = useLanguage();
-  const labels = ["tutor", "flashcards", "quiz", "scholarships", "notes", "planner"] as const;
-  const descriptions = ["askAnything", "reviewCards", "testYourself", "findFunding", "summarize", "schedule"] as const;
+  const labels = ["tutor", "flashcards", "quiz", "scholarships", "notes", "planner", "admissions"] as const;
+  const descriptions = ["askAnything", "reviewCards", "testYourself", "findFunding", "summarize", "schedule", "planApplications"] as const;
   return (
     <div>
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
         {t("quickActions")}
       </h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((action, i) => (
           <motion.div
             key={action.label}

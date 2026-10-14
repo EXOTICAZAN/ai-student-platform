@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Trophy, UserCircle, Bookmark, ClipboardList, SlidersHorizontal, X } from "lucide-react";
+import { Trophy, UserCircle, Bookmark, ClipboardList, SlidersHorizontal, X, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import ScholarshipSearchBar from "@/components/scholarships/ScholarshipSearchBar";
@@ -169,6 +169,10 @@ export default function ScholarshipsPage() {
                 </Link>
               ))}
             </div>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs text-amber-100">
+            Pakistan scholarship guide: use the existing degree/funding filters for need-based and degree-fit discovery. Every deadline and eligibility claim is reference data; verify the scholarship&apos;s official source and its last-verified status before applying. <a className="ml-1 text-indigo-300" href="https://hec.gov.pk/" target="_blank" rel="noreferrer">HEC official site <ExternalLink className="inline h-3 w-3" /></a>
           </motion.div>
 
           {/* Profile nudge banner */}

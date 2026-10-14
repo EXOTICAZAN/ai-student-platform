@@ -16,6 +16,9 @@ import {
   BarChart3,
   Settings,
   Sparkles,
+  Landmark,
+  ClipboardCheck,
+  WalletCards,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -32,6 +35,10 @@ const navItems = [
   { href: "/dashboard/courses", label: "Courses", icon: GraduationCap },
   { href: "/dashboard/quiz", label: "Quiz Generator", icon: HelpCircle },
   { href: "/dashboard/scholarships", label: "Scholarships", icon: Trophy },
+  { href: "/dashboard/admissions", label: "Pakistan Admissions", icon: Landmark },
+  { href: "/dashboard/exam-prep", label: "Exam Prep", icon: ClipboardCheck },
+  { href: "/dashboard/budget", label: "Budget Planner", icon: WalletCards },
+  { href: "/dashboard/pakistan-guidance", label: "HEC / IBCC & Careers", icon: ShieldCheck },
   { href: "/dashboard/planner", label: "Study Planner", icon: Calendar },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/career-roadmap", label: "Career Roadmap", icon: Route },
@@ -44,7 +51,7 @@ export default function Sidebar() {
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => { fetch("/api/admin/status").then(r => r.json()).then(x => setIsAdmin(Boolean(x.isAdmin))).catch(() => undefined); }, []);
   const { t } = useLanguage();
-  const labels = ["dashboard", "tutor", "notes", "flashcards", "courses", "quiz", "scholarships", "planner", "analytics", "careerRoadmap", "settings"] as const;
+  const labels = ["dashboard", "tutor", "notes", "flashcards", "courses", "quiz", "scholarships", "admissions", "examPrep", "budget", "pakistanGuidance", "planner", "analytics", "careerRoadmap", "settings"] as const;
 
   return (
     <aside
