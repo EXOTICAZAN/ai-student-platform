@@ -1,0 +1,1 @@
+export function isAdminEmail(email: string | null | undefined, configured = process.env.ADMIN_EMAILS) { return Boolean(email && configured?.split(",").some(x => x.trim().toLowerCase() === email.toLowerCase())); }

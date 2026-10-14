@@ -10,6 +10,8 @@ import {
   GraduationCap,
   HelpCircle,
   Trophy,
+  Route,
+  ShieldCheck,
   Calendar,
   BarChart3,
   Settings,
@@ -18,7 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
@@ -32,14 +34,17 @@ const navItems = [
   { href: "/dashboard/scholarships", label: "Scholarships", icon: Trophy },
   { href: "/dashboard/planner", label: "Study Planner", icon: Calendar },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/career-roadmap", label: "Career Roadmap", icon: Route },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { fetch("/api/admin/status").then(r => r.json()).then(x => setIsAdmin(Boolean(x.isAdmin))).catch(() => undefined); }, []);
   const { t } = useLanguage();
-  const labels = ["dashboard", "tutor", "notes", "flashcards", "courses", "quiz", "scholarships", "planner", "analytics", "settings"] as const;
+  const labels = ["dashboard", "tutor", "notes", "flashcards", "courses", "quiz", "scholarships", "planner", "analytics", "careerRoadmap", "settings"] as const;
 
   return (
     <aside
@@ -69,7 +74,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {navItems.map((item) => {
+        {navItems.filter(item => item.href !== "/dashboard/admin").map((item) => {
           const active = pathname === item.href;
           return (
             <Link
@@ -109,6 +114,7 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        {isAdmin && <Link href="/dashboard/admin" className={cn("group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", pathname === "/dashboard/admin" ? "bg-indigo-500/15 text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><ShieldCheck className="h-[18px] w-[18px] text-slate-500" />{!collapsed && <span>Admin</span>}</Link>}
       </nav>
 
       {/* Collapse toggle */}

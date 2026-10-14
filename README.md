@@ -286,3 +286,11 @@ pre-bake the model into the deployment image and point `EMBEDDING_CACHE_DIR` at
 it, or run ingestion on a worker with a persistent volume. A long-running Node
 server has neither problem — the model loads once in about a second and stays
 resident.
+
+## Personalized onboarding, admin and career roadmap
+
+New and returning authenticated users complete `/onboarding` before entering the dashboard. The flow validates and saves country, education, goals, language, weekly study time, interests and career goal to `profiles` (and the daily equivalent to `user_settings`). Run `supabase/migrations/010_personalization.sql` after migration 009.
+
+Set the server-only `ADMIN_EMAILS` environment variable to a comma-separated list of trusted email addresses to enable the protected `/dashboard/admin` overview. Authorization is checked on the server; an authenticated non-admin receives a clear 403 response, and the navigation link is only shown to admins.
+
+`/dashboard/career-roadmap` generates a validated roadmap through the existing Groq helper, with rate limiting and a deterministic fallback when Groq is unavailable. The initial version keeps generated roadmaps in the client session and stores only the goal in `profiles`; add a dedicated roadmap table in a future migration before adding durable history or sharing.

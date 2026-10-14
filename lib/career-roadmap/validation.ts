@@ -1,0 +1,6 @@
+import { z } from "zod";
+export const careerGoalSchema = z.object({ goal: z.string().trim().min(2).max(160) });
+export type CareerGoalInput = z.infer<typeof careerGoalSchema>;
+export const roadmapSchema = z.object({ milestones: z.array(z.object({ title: z.string(), timeframe: z.string(), description: z.string() })).min(1).max(12), skills: z.array(z.string()).max(20), recommended_courses: z.array(z.string()).max(12), next_steps: z.array(z.string()).max(12) });
+export type Roadmap = z.infer<typeof roadmapSchema>;
+export const fallbackRoadmap = (goal: string): Roadmap => ({ milestones: [{ title: "Clarify your target", timeframe: "Week 1", description: `Research the day-to-day work and entry requirements for ${goal}.` }, { title: "Build foundations", timeframe: "Months 1–3", description: "Choose one core subject and practice it consistently." }, { title: "Create evidence", timeframe: "Months 3–6", description: "Complete a small project and ask for feedback." }], skills: ["Communication", "Problem solving", "Digital literacy"], recommended_courses: ["Foundations of your chosen subject", "Project-based learning"], next_steps: ["Set a weekly study schedule", "Find a mentor or community", "Review progress every month"] });
