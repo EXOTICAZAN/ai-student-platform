@@ -6,8 +6,14 @@ import {
   CheckCircle2,
   ExternalLink,
   Filter,
+  Link2,
+  MessageCircle,
+  Plus,
+  RefreshCw,
   ShieldAlert,
+  Users,
 } from "lucide-react";
+import { EXAM_CATALOGUE } from "@/lib/exam-groups";
 import {
   ADMISSIONS_REFERENCE,
   DEGREES,
@@ -522,65 +528,33 @@ export function BudgetPlanner() {
   );
 }
 
+type ExamGroup = { id: string; exam_key: string; exam_name: string; title: string; description: string; province?: string | null; city?: string | null; created_by: string; max_members: number; member_count: number; created_at: string; is_member?: boolean; is_owner?: boolean };
+type ExamPost = { id: string; author_id: string; body: string; resource_url?: string | null; created_at: string };
+
 export function ExamPrep() {
-  const [exam, setExam] = useState("MDCAT");
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Exam prep hub</h1>
-      <Notice />
-      <div className="glass-strong rounded-2xl p-5">
-        <label className="text-sm text-slate-300">
-          Exam
-          <select
-            className={`${inputClass} mt-2`}
-            value={exam}
-            onChange={(e) => setExam(e.target.value)}
-          >
-            {["MDCAT", "ECAT", "NET", "NTS"].map((x) => (
-              <option key={x}>{x}</option>
-            ))}
-          </select>
-        </label>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {[
-            "Topic selector: choose one syllabus topic",
-            "Practice plan: 25 minutes concept + 20 minutes timed questions",
-            "Review: log mistakes and revisit weak concepts",
-          ].map((x) => (
-            <div
-              className="rounded-xl border border-white/10 p-4 text-sm text-slate-300"
-              key={x}
-            >
-              {x}
-            </div>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-slate-400">
-          No unofficial or fabricated past papers are included. Start with the
-          relevant official authority and current syllabus.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-3">
-          {OFFICIAL_LINKS.filter(
-            ([n]) =>
-              ["PMDC (medical regulation)", "NTS"].includes(n) ||
-              exam !== "MDCAT",
-          )
-            .slice(0, 3)
-            .map(([n, u]) => (
-              <a
-                className="text-sm text-indigo-300"
-                href={u}
-                target="_blank"
-                rel="noreferrer"
-                key={u}
-              >
-                {n} <ExternalLink className="inline h-3 w-3" />
-              </a>
-            ))}
-        </div>
-      </div>
-    </div>
-  );
+  const [exam, setExam] = useState("NET");
+  const [search, setSearch] = useState("");
+  const [groups, setGroups] = useState<ExamGroup[]>([]);
+  const [selected, setSelected] = useState<ExamGroup | null>(null);
+  const [posts, setPosts] = useState<ExamPost[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [newGroup, setNewGroup] = useState({ title: "", description: "", province: "", city: "", max_members: "50" });
+  const [post, setPost] = useState({ body: "", resource_url: "" });
+  const selectedExam = EXAM_CATALOGUE.find((item) => item.key === exam) ?? EXAM_CATALOGUE[0];
+  const loadGroups = async () => { setBusy(true); try { const response = await fetch(`/api/exam-groups?exam_key=${encodeURIComponent(exam)}&search=${encodeURIComponent(search)}`); const body = await response.json(); if (!response.ok) throw new Error(body.error ?? "Could not load groups"); setGroups(body.data ?? []); if (selected && !body.data?.some((g: ExamGroup) => g.id === selected.id)) { setSelected(null); setPosts([]); } } catch (error) { setMessage(error instanceof Error ? error.message : "Could not load groups"); } finally { setBusy(false); } };
+  // Fetch after the category changes without blocking the render phase.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { const timer = window.setTimeout(() => { void loadGroups(); }, 0); return () => window.clearTimeout(timer); }, [exam]);
+  const selectGroup = async (group: ExamGroup) => { setSelected(group); setMessage(""); if (!group.is_member) return; const response = await fetch(`/api/exam-groups/${group.id}/posts`); const body = await response.json(); if (response.ok) setPosts(body.data ?? []); else setMessage(body.error ?? "Could not load discussion."); };
+  const membership = async (group: ExamGroup, action: "join" | "leave") => { setBusy(true); const response = await fetch(`/api/exam-groups/${group.id}/membership`, { method: action === "join" ? "POST" : "DELETE" }); const body = await response.json(); setBusy(false); if (!response.ok) { setMessage(body.error ?? "Could not update membership."); return; } await loadGroups(); setSelected({ ...group, is_member: action === "join", member_count: group.member_count + (action === "join" ? 1 : -1) }); if (action === "join") { const postsResponse = await fetch(`/api/exam-groups/${group.id}/posts`); const postsBody = await postsResponse.json(); if (postsResponse.ok) setPosts(postsBody.data ?? []); } else setPosts([]); };
+  const create = async (event: React.FormEvent) => { event.preventDefault(); setBusy(true); const response = await fetch("/api/exam-groups", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newGroup, exam_key: exam, exam_name: selectedExam.name, max_members: Number(newGroup.max_members) }) }); const body = await response.json(); setBusy(false); if (!response.ok) { setMessage(body.error ?? "Could not create group."); return; } setShowCreate(false); setNewGroup({ title: "", description: "", province: "", city: "", max_members: "50" }); await loadGroups(); setSelected(body.data); setPosts([]); };
+  const publish = async (event: React.FormEvent) => { event.preventDefault(); if (!selected || !post.body.trim()) return; setBusy(true); const response = await fetch(`/api/exam-groups/${selected.id}/posts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(post) }); const body = await response.json(); setBusy(false); if (!response.ok) { setMessage(body.error ?? "Could not publish post."); return; } setPosts((current) => [body.data, ...current]); setPost({ body: "", resource_url: "" }); };
+  return <div className="mx-auto max-w-7xl space-y-6"><header><p className="text-sm text-indigo-300">Pakistan Student Hub · Exam Prep</p><h1 className="mt-1 text-3xl font-bold text-white">Study groups for entrance exams</h1><p className="mt-2 max-w-3xl text-slate-400">Find peers preparing for the same test, exchange resources, and discuss difficult questions. Keep advice respectful and verify dates, syllabi, and eligibility with official sources.</p></header><Notice />
+    <section className="glass-strong rounded-2xl p-5" aria-labelledby="exam-groups-heading"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="exam-groups-heading" className="flex items-center gap-2 font-semibold text-white"><Users className="h-4 w-4 text-indigo-300" /> Browse study groups</h2><p className="mt-1 text-xs text-slate-400">Categories are intentionally broad; students decide what to study together.</p></div><button type="button" onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-400"><Plus className="h-4 w-4" /> Create group</button></div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><label className="text-xs text-slate-400">Exam category<select aria-label="Exam category" className={`${inputClass} mt-1`} value={exam} onChange={(e) => setExam(e.target.value)}>{EXAM_CATALOGUE.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</select></label><label className="text-xs text-slate-400">Search groups<input aria-label="Search groups" className={`${inputClass} mt-1`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void loadGroups(); }} placeholder="Search title or topic" /></label><button type="button" onClick={() => void loadGroups()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 hover:border-indigo-300 hover:text-white"><RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} /> Refresh</button></div>{message && <p role="status" className="mt-3 text-sm text-amber-200">{message}</p>}<div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div className="space-y-2">{groups.length === 0 && <div className="rounded-xl border border-dashed border-white/15 p-6 text-center text-sm text-slate-400">No groups yet for this category. Start one and invite your classmates.</div>}{groups.map((group) => <button type="button" key={group.id} onClick={() => void selectGroup(group)} className={`w-full rounded-xl border p-4 text-left transition ${selected?.id === group.id ? "border-indigo-400 bg-indigo-500/10" : "border-white/10 bg-white/[.02] hover:border-indigo-300/60"}`}><div className="flex items-start justify-between gap-3"><span className="font-medium text-white">{group.title}</span>{group.created_by && <span className="text-xs text-indigo-300">{group.is_member ? "Joined" : "Open"}</span>}</div><p className="mt-1 line-clamp-2 text-sm text-slate-400">{group.description || "No description yet."}</p><p className="mt-3 flex items-center gap-3 text-xs text-slate-500"><span><Users className="mr-1 inline h-3 w-3" />{group.member_count}/{group.max_members}</span>{group.city || group.province ? <span>{[group.city, group.province].filter(Boolean).join(", ")}</span> : null}</p></button>)}</div><div className="min-h-[280px] rounded-xl border border-white/10 bg-white/[.02] p-4">{!selected ? <div className="flex h-full min-h-[240px] flex-col items-center justify-center text-center text-slate-400"><MessageCircle className="mb-2 h-8 w-8 text-indigo-300" /><p>Select a group to view its discussion.</p><p className="mt-1 text-xs">Join a group before posting or reading its conversation.</p></div> : <><div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3"><div><h3 className="font-semibold text-white">{selected.title}</h3><p className="mt-1 text-xs text-slate-400">{selected.exam_name} · {selected.member_count}/{selected.max_members} members {selected.is_owner ? "· Owner" : ""}</p></div><button type="button" disabled={busy} onClick={() => void membership(selected, selected.is_member ? "leave" : "join")} className="rounded-lg border border-indigo-300/40 px-3 py-1.5 text-xs text-indigo-200 hover:bg-indigo-500/10">{selected.is_member ? "Leave group" : "Join group"}</button></div>{selected.is_member ? <><div className="max-h-64 space-y-3 overflow-y-auto py-4">{posts.length === 0 ? <p className="text-sm text-slate-400">No posts yet. Share a useful resource or start a discussion.</p> : posts.map((item) => <article key={item.id} className="rounded-lg border border-white/10 p-3"><p className="whitespace-pre-wrap text-sm text-slate-200">{item.body}</p>{item.resource_url && <a className="mt-2 inline-flex max-w-full items-center gap-1 truncate text-xs text-indigo-300 hover:text-white" href={item.resource_url} target="_blank" rel="noreferrer"><Link2 className="h-3 w-3 shrink-0" />{item.resource_url}</a>}<time className="mt-2 block text-[11px] text-slate-500">{new Date(item.created_at).toLocaleString()}</time></article>)}</div><form onSubmit={publish} className="space-y-2 border-t border-white/10 pt-3"><label className="sr-only" htmlFor="post-body">Write a post</label><textarea id="post-body" required maxLength={4000} value={post.body} onChange={(e) => setPost({ ...post, body: e.target.value })} className={`${inputClass} min-h-20 resize-y`} placeholder="Ask a question, share a study tip, or explain a tricky concept" /><div className="flex gap-2"><input aria-label="Optional resource link" type="url" value={post.resource_url} onChange={(e) => setPost({ ...post, resource_url: e.target.value })} className={`${inputClass} flex-1`} placeholder="Optional resource URL (https://...)" /><button disabled={busy || !post.body.trim()} className="rounded-xl bg-indigo-500 px-4 py-2 text-sm text-white disabled:opacity-50">Post</button></div></form></> : <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-400">Join this group to see and contribute to its discussion.</div>}</>}</div></div></section>
+    {showCreate && <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><form onSubmit={create} className="glass-strong w-full max-w-lg space-y-4 rounded-2xl p-5"><div className="flex justify-between"><h2 id="create-group-title" className="text-lg font-semibold text-white">Create a {selectedExam.name} group</h2><button type="button" aria-label="Close" onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-white">×</button></div><label className="block text-xs text-slate-400">Group title<input required maxLength={100} className={`${inputClass} mt-1`} value={newGroup.title} onChange={(e) => setNewGroup({ ...newGroup, title: e.target.value })} placeholder="e.g. NET Maths accountability" /></label><label className="block text-xs text-slate-400">Description<textarea maxLength={1000} className={`${inputClass} mt-1`} value={newGroup.description} onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })} placeholder="What will this group focus on?" /></label><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs text-slate-400">Province<input maxLength={60} className={`${inputClass} mt-1`} value={newGroup.province} onChange={(e) => setNewGroup({ ...newGroup, province: e.target.value })} /></label><label className="text-xs text-slate-400">City<input maxLength={80} className={`${inputClass} mt-1`} value={newGroup.city} onChange={(e) => setNewGroup({ ...newGroup, city: e.target.value })} /></label></div><label className="block text-xs text-slate-400">Maximum members<input required type="number" min="2" max="500" className={`${inputClass} mt-1`} value={newGroup.max_members} onChange={(e) => setNewGroup({ ...newGroup, max_members: e.target.value })} /></label><p className="text-xs text-slate-500">Use a clear title, avoid sharing private documents, and keep discussion supportive.</p><div className="flex justify-end gap-2"><button type="button" onClick={() => setShowCreate(false)} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300">Cancel</button><button disabled={busy} className="rounded-xl bg-indigo-500 px-4 py-2 text-sm text-white disabled:opacity-50">Create group</button></div></form></div>}
+  </div>;
 }
 
 export function GuidanceAndCareers() {

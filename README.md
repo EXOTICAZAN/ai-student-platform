@@ -6,6 +6,10 @@ Authenticated dashboard routes `/dashboard/admissions`, `/dashboard/exam-prep`, 
 
 Before enabling per-user admissions tracking in a deployed environment, apply `supabase/migrations/012_pakistan_student_hub.sql`. The migration creates a curated reference table, owner-scoped application statuses, and RLS policies. No secrets or external API calls are required. Reference rows should be human-curated and verified against official university/regulator sources before adding them.
 
+### Exam Prep study groups
+
+Apply `supabase/migrations/013_exam_groups.sql` after migration 012 to enable the Exam Prep study-group feature. It creates exam groups, memberships, and discussion posts with authenticated-session RLS, owner controls, member limits, indexes, and idempotent SQL. The migration does not require or use the service-role key. The API is available at `GET/POST /api/exam-groups`, `POST/DELETE /api/exam-groups/:id/membership`, and `GET/POST /api/exam-groups/:id/posts`; all routes require the signed-in user session and validate input. The dashboard UI supports NET, ECAT, MDCAT, LUMS, NTS, FAST, GIKI, PIEAS, university entrance tests, and Other. This is a peer discussion space, not a source of official exam dates or eligibility claims: students should verify those with the relevant official authority.
+
 
 ## Language support
 
