@@ -80,7 +80,8 @@ function parseAdvisorJson(raw: string, fallbackText: string, officialSources: { 
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) {
     return NextResponse.json(
       { data: null, error: { code: "UNAUTHORIZED", message: "Authentication required" } },
