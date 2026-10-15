@@ -23,16 +23,15 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  let user = null;
-  try {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    user = authUser;
-  } catch {
-    // Transient network error (e.g. AuthRetryableFetchError at cold start).
-    // Treat as unauthenticated; Supabase will retry on the next request.
-  }
+  // Do not call getUser() here. Server pages and route handlers call getUser()
+  // themselves, and doing it in both middleware and the request can make two
+  // concurrent requests consume the same rotating Supabase refresh token.
+  // getSession() only reads the local cookie and lets the request's single
+  // server client perform any required refresh.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const path = request.nextUrl.pathname;
   const isAuthPage =
