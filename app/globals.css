@@ -51,3 +51,7 @@
 .prose code:not(pre code) { background: #102a3a; color: #f8fafc; padding: 2px 6px; border-radius: 6px; font-size: .9rem; }
 .prose pre { margin: 1rem 0; border-radius: 14px; overflow-x: auto; } .prose pre code { background: transparent; }
 .katex { font-size: 1.15rem; } .katex-display { overflow-x: auto; overflow-y: hidden; padding: 1rem 0; }
+
+/* Keep native select menus readable against the app's dark surfaces. */
+select { color-scheme: dark; }
+select option { background-color: #071b2a; color: #f8fafc; }
