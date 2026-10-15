@@ -172,8 +172,6 @@ export function AdmissionsHub() {
           directory.
         </p>
       </header>
-      <Notice />
-
       <section
         className="glass-strong rounded-2xl p-5"
         aria-labelledby="admissions-search-heading"
