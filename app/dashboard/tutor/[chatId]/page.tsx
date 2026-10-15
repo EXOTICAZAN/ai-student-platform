@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import ChatWindow from "@/components/chat/ChatWindow";
@@ -17,11 +17,7 @@ export const metadata = { title: "AI Tutor — EduForge AI" };
 export default async function ChatPage({ params }: Props) {
   const { chatId } = await params;
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

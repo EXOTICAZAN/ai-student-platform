@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import NotesClient from "@/components/notes/NotesClient";
 import type { NoteRow } from "@/lib/study/types";
 
 export const metadata = { title: "AI Notes — EduForge AI" };
 
 export default async function NotesPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

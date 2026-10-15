@@ -9,8 +9,7 @@ import { z } from "zod";
 export async function GET(request: NextRequest) {
   // Auth check
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json(
       { data: null, error: { code: "UNAUTHORIZED", message: "Authentication required" } },

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import { getDashboardStats, getWeeklyMinutes } from "@/lib/study/activity";
 import AnalyticsClient from "@/components/analytics/AnalyticsClient";
 import type {
@@ -55,11 +55,7 @@ const INTERVAL_BUCKETS: { label: string; test: (days: number) => boolean }[] = [
 ];
 
 export default async function AnalyticsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

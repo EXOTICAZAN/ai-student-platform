@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import { getApplications } from "@/lib/scholarships/query";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { ApplicationCard } from "@/components/scholarships/ApplicationTracker/ApplicationCard";
@@ -20,9 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ApplicationsPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { user } = await getAuthContext();
   if (!user) redirect("/login");
 
   const result = await getApplications(user.id);
