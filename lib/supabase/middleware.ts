@@ -29,6 +29,15 @@ export function isDocumentRequest(request: Pick<NextRequest, "method" | "nextUrl
   return headers.get("accept")?.includes("text/html") === true || destination === "document";
 }
 
+export function shouldRefreshSession(
+  request: Pick<NextRequest, "nextUrl" | "method" | "headers">,
+) {
+  // Public pages do not need a Supabase lookup. More importantly, a stale
+  // auth cookie on / or /login must not trigger a refresh-token error before
+  // the user has even started signing in.
+  return request.nextUrl.pathname.startsWith("/dashboard") && isDocumentRequest(request);
+}
+
 function clearAuthCookies(response: NextResponse, request: NextRequest) {
   for (const cookie of request.cookies.getAll()) {
     if (cookie.name.startsWith("sb-")) response.cookies.delete(cookie.name);
@@ -43,7 +52,7 @@ function clearAuthCookies(response: NextResponse, request: NextRequest) {
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({ request });
 
-  if (!isDocumentRequest(request)) return response;
+  if (!shouldRefreshSession(request)) return response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,13 +70,25 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  let user = null;
+  let error: unknown = null;
+
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+    error = result.error;
+  } catch (caught) {
+    // Some Supabase/Auth versions throw the refresh error instead of returning
+    // it. Handle it at the boundary so Next.js does not print an uncaught
+    // AuthApiError and the browser receives a clean login redirect.
+    error = caught;
+  }
 
   // Do not leave a spent refresh token in the browser. The next request then
   // has a clean, quiet unauthenticated result instead of retrying the token.
   if (error && isInvalidSessionError(error)) clearAuthCookies(response, request);
 
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  if (!user) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     login.search = `?next=${encodeURIComponent(
