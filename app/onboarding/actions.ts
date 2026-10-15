@@ -1,6 +1,5 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { onboardingSchema, type OnboardingInput } from "@/lib/onboarding/validation";
 import { consume } from "@/lib/api/rateLimit";
@@ -24,5 +23,5 @@ export async function completeOnboarding(input: OnboardingInput) {
   if (error) { console.error("[onboarding] save failed", error.message); return { ok: false as const, error: "Could not save your onboarding details." }; }
   await supabase.from("user_settings").upsert({ user_id: user.id, daily_goal_minutes: Math.max(15, Math.round(value.weekly_study_minutes / 7)) }, { onConflict: "user_id" });
   revalidatePath("/dashboard"); revalidatePath("/dashboard/settings");
-  redirect("/dashboard");
+  return { ok: true as const };
 }
