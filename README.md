@@ -308,7 +308,7 @@ resident.
 
 ## Personalized onboarding, admin and career roadmap
 
-New and returning authenticated users complete `/onboarding` before entering the dashboard. The flow validates and saves country, education, goals, language, weekly study time, interests and career goal to `profiles` (and the daily equivalent to `user_settings`). Run `supabase/migrations/010_personalization.sql` after migration 009.
+Authenticated users go directly to the dashboard after sign-in. The personalization columns for country, education, goals, language, weekly study time, interests and career goal remain available in `profiles` (with the daily equivalent in `user_settings`) for settings and future profile flows. Run `supabase/migrations/010_personalization.sql` after migration 009.
 
 Set the server-only `ADMIN_EMAILS` environment variable to a comma-separated list of trusted email addresses to enable the protected `/dashboard/admin` overview. Authorization is checked on the server; an authenticated non-admin receives a clear 403 response, and the navigation link is only shown to admins.
 

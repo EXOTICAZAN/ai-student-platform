@@ -29,9 +29,6 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: onboardingProfile } = await supabase.from("profiles").select("onboarding_complete").eq("id", user.id).maybeSingle();
-  if (onboardingProfile && onboardingProfile.onboarding_complete === false) redirect("/onboarding");
-
   const [
     { data: profile },
     stats,
