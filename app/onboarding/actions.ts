@@ -8,7 +8,11 @@ export async function completeOnboarding(input: OnboardingInput) {
   const parsed = onboardingSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Please complete each field with valid information." };
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // The middleware has already established the session for this request.
+  // Reading it locally avoids rotating the Google refresh token a second time
+  // during the onboarding server action.
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return { ok: false as const, error: "You must be signed in." };
   const limited = await consume("onboarding", user.id, 5, 60_000);
   if (!limited.ok) return { ok: false as const, error: "Too many attempts. Please try again shortly." };
