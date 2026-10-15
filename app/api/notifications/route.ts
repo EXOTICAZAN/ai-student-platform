@@ -13,7 +13,8 @@ const LIMIT = 20;
 
 async function currentUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   return { supabase, user: user ?? null };
 }
 

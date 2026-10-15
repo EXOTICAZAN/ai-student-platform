@@ -11,7 +11,8 @@ const GENERIC_ERROR = "We could not process that knowledge check.";
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    const user = authSession?.user;
     if (!user) return NextResponse.json({ data: null, error: { code: "unauthorized", message: "Sign in required." } }, { status: 401 });
     const limit = await consume("course_check", user.id, 20);
     if (!limit.ok) return tooManyRequests(limit.retryAfterMs);

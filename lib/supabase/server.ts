@@ -29,12 +29,19 @@ export async function createClient(): Promise<SupabaseClient> {
 }
 
 /**
- * One trusted auth lookup per server render. React cache deduplicates calls
- * from layouts/pages that share a request without sharing mutable sessions
- * across requests.
+ * Read the session established by the document boundary. This intentionally
+ * does not call getUser(): getUser may rotate a refresh token, and API/RSC
+ * requests run in parallel and cannot safely propagate a rotated cookie.
+ *
+ * Security invariant: proxy.ts is the authoritative refresh/auth boundary for
+ * browser navigations. It verifies the session with getUser on the HTML
+ * document request and propagates the resulting cookies. API handlers only
+ * read that session here and still enforce user_id/RLS authorization.
+ * React cache deduplicates reads within one server render without sharing
+ * mutable sessions between requests.
  */
 export const getAuthContext = cache(async () => {
   const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  return { supabase, user: user as User | null, error };
+  const { data: { session }, error } = await supabase.auth.getSession();
+  return { supabase, user: (session?.user ?? null) as User | null, error };
 });

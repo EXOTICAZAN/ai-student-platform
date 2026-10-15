@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   let createdCourseId: string | null = null;
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
     if (!user) return NextResponse.json({ data: null, error: { code: "unauthorized", message: "Sign in required." } }, { status: 401 });
     const limit = await consume("course_generate", user.id, 5);
     if (!limit.ok) return tooManyRequests(limit.retryAfterMs);

@@ -3,12 +3,48 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isInvalidSessionError } from "./auth-errors";
 
 /**
- * Refresh the Supabase session once at the request boundary. Supabase SSR
- * requires the refreshed cookies to be copied to both the request (for the
- * current render) and the response (for the browser's next request).
+ * Refresh only on a real HTML document request. RSC navigations, API calls,
+ * prefetches and assets cannot reliably propagate Set-Cookie back into the
+ * browser before the next parallel request, so refreshing from them can make
+ * Supabase rotate the same refresh token concurrently.
+ */
+export function isDocumentRequest(request: Pick<NextRequest, "method" | "nextUrl" | "headers">) {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (request.nextUrl.pathname.startsWith("/api/")) return false;
+
+  const headers = request.headers;
+  if (
+    headers.get("rsc") === "1" ||
+    headers.has("next-router-state-tree") ||
+    headers.get("purpose") === "prefetch" ||
+    headers.has("next-router-prefetch") ||
+    headers.get("accept")?.includes("text/x-component")
+  ) {
+    return false;
+  }
+
+  const destination = headers.get("sec-fetch-dest");
+  if (destination && destination !== "document") return false;
+
+  return headers.get("accept")?.includes("text/html") === true || destination === "document";
+}
+
+function clearAuthCookies(response: NextResponse, request: NextRequest) {
+  for (const cookie of request.cookies.getAll()) {
+    if (cookie.name.startsWith("sb-")) response.cookies.delete(cookie.name);
+  }
+}
+
+/**
+ * Refresh Supabase at the document request boundary, where response cookies
+ * can reach the browser. Non-document requests are deliberately pass-through;
+ * their handlers use the session already established by this boundary.
  */
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({ request });
+
+  if (!isDocumentRequest(request)) return response;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -27,17 +63,10 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user }, error } = await supabase.auth.getUser();
 
-  // A rotated/expired refresh token must not be retried on every RSC request.
-  // The browser client will see the cleared cookies and can return to login.
-  if (error && isInvalidSessionError(error)) {
-    for (const cookie of request.cookies.getAll()) {
-      if (cookie.name.startsWith("sb-")) response.cookies.delete(cookie.name);
-    }
-  }
+  // Do not leave a spent refresh token in the browser. The next request then
+  // has a clean, quiet unauthenticated result instead of retrying the token.
+  if (error && isInvalidSessionError(error)) clearAuthCookies(response, request);
 
-  // Do this at the boundary as well as in the layout so an unauthenticated
-  // dashboard request never renders protected content. API requests are left
-  // to their handlers so they return JSON 401s rather than HTML redirects.
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
