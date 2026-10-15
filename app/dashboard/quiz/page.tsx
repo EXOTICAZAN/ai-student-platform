@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import QuizLibraryClient, {
   type QuizSummary,
 } from "@/components/quiz/QuizLibraryClient";
@@ -14,11 +14,7 @@ interface Props {
 export default async function QuizLibraryPage({ searchParams }: Props) {
   const { noteId } = await searchParams;
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

@@ -19,16 +19,6 @@ export function LanguageProvider({ children, initialLanguage }: { children: Reac
     document.documentElement.dataset.locale = locale;
   }, [locale]);
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/profile/language").then((r) => r.ok ? r.json() : null).then((data) => {
-      if (!active || window.localStorage.getItem("eduforge-locale")) return;
-      const next = profileLanguageToLocale(data?.language);
-      setLocaleState(next);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-
   const setLocale = (next: Locale) => {
     setLocaleState(next);
     try { window.localStorage.setItem("eduforge-locale", next); } catch { /* storage may be unavailable */ }

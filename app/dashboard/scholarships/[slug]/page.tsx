@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import {
   getScholarshipDetail,
   getSavedScholarshipIds,
@@ -261,9 +261,7 @@ interface Props {
 }
 
 export default async function ScholarshipDetailPage({ params }: Props) {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { user } = await getAuthContext();
   if (!user) redirect("/login");
 
   const { slug } = await params;

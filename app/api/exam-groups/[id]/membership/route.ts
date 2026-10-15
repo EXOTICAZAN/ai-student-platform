@@ -5,7 +5,7 @@ import { limitOrNull } from "@/lib/api/rateLimit";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) { return changeMembership(params, "join"); }
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) { return changeMembership(params, "leave"); }
 async function changeMembership(params: Promise<{ id: string }>, action: "join" | "leave") {
-  const supabase = await createClient(); const { data: { session } } = await supabase.auth.getSession(); const user = session?.user;
+  const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   const limited = await limitOrNull("exam_groups_membership", user.id, 60); if (limited) return limited;
   const { id } = await params; if (!isUuid(id)) return NextResponse.json({ error: "Invalid group" }, { status: 400 });

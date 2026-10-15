@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import { selectCourse } from "@/lib/courses/selection";
 import CoursesClient from "@/components/courses/CoursesClient";
 
@@ -12,8 +12,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 export default async function CoursesPage({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
   if (!user) redirect("/login");
 
   const [{ data: profile }, { data: courses }] = await Promise.all([

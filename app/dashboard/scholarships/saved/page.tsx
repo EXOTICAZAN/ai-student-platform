@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import {
   getSavedScholarships,
   getStudentProfile,
@@ -17,9 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SavedScholarshipsPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { user } = await getAuthContext();
   if (!user) redirect("/login");
 
   const [savedResult, profileResult] = await Promise.all([

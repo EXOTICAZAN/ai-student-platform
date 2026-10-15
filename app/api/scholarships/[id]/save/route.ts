@@ -23,8 +23,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return unauthorized();
   const limited = await limitOrNull("scholarships_save", user.id, 120);
   if (limited) return limited;
@@ -54,8 +53,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return unauthorized();
   const limited = await limitOrNull("scholarships_save", user.id, 120);
   if (limited) return limited;

@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import PlannerClient from "@/components/planner/PlannerClient";
 import type { StudyTaskRow } from "@/lib/study/types";
 
 export const metadata = { title: "Study Planner — EduForge AI" };
 
 export default async function PlannerPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

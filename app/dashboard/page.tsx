@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import {
   getDashboardStats,
   getRecentActivity,
@@ -21,10 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

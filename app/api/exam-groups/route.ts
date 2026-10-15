@@ -4,7 +4,7 @@ import { createGroupSchema, EXAM_CATALOGUE } from "@/lib/exam-groups";
 import { limitOrNull } from "@/lib/api/rateLimit";
 import { readJson, serverError } from "@/lib/api/guard";
 
-async function auth() { const supabase = await createClient(); const { data: { session } } = await supabase.auth.getSession(); return { supabase, user: session?.user ?? null }; }
+async function auth() { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); return { supabase, user: user ?? null }; }
 export async function GET(req: NextRequest) {
   const { supabase, user } = await auth();
   if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { postSchema } from "@/lib/exam-groups";
 import { isUuid, readJson, serverError } from "@/lib/api/guard";
 import { limitOrNull } from "@/lib/api/rateLimit";
-async function context(id: string) { const supabase = await createClient(); const { data: { session } } = await supabase.auth.getSession(); return { supabase, user: session?.user ?? null, valid: isUuid(id) }; }
+async function context(id: string) { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); return { supabase, user: user ?? null, valid: isUuid(id) }; }
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; const { supabase, user, valid } = await context(id);
   if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 }); if (!valid) return NextResponse.json({ error: "Invalid group" }, { status: 400 });

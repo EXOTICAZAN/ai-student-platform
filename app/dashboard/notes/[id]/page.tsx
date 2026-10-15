@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import NoteEditor from "@/components/notes/NoteEditor";
 import type { NoteRow } from "@/lib/study/types";
 
@@ -12,11 +12,7 @@ interface Props {
 export default async function NoteDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

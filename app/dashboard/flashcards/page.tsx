@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import DecksClient from "@/components/flashcards/DecksClient";
 import type {
   DeckWithStats,
@@ -36,11 +36,7 @@ function buildDeckStats(cards: CardRef[] | null) {
 export default async function FlashcardsPage({ searchParams }: Props) {
   const { noteId } = await searchParams;
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/supabase/server";
 import TakeQuizClient from "@/components/quiz/TakeQuizClient";
 import QuizNotFound from "@/components/quiz/QuizNotFound";
 import type { QuizQuestionRow, QuizRow } from "@/lib/study/types";
@@ -13,11 +13,7 @@ interface Props {
 export default async function TakeQuizPage({ params }: Props) {
   const { id } = await params;
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthContext();
 
   if (!user) redirect("/login");
 

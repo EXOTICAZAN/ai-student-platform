@@ -7,14 +7,7 @@ import { Bell, Loader2, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { relativeTime } from "@/components/ui/Badge";
-
-interface Notification {
-  id: string;
-  text: string;
-  link: string | null;
-  read: boolean;
-  created_at: string;
-}
+import { fetchNotifications, type NotificationItem as Notification } from "@/lib/notifications/client";
 
 export default function NotificationsBell() {
   const router = useRouter();
@@ -27,45 +20,22 @@ export default function NotificationsBell() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications", { cache: "no-store" });
-      if (!res.ok) throw new Error("failed");
-
-      const json = (await res.json()) as {
-        data: { notifications: Notification[]; unread: number } | null;
-      };
-
-      if (!json.data) throw new Error("failed");
-
-      setItems(json.data.notifications);
-      setUnread(json.data.unread);
+      const data = await fetchNotifications();
+      setItems(data.notifications);
+      setUnread(data.unread);
+      return data;
     } catch {
       // A silent failure here is fine — the bell just stays empty.
+      return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    fetch("/api/notifications", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
-      .then((json: { data: { notifications: Notification[]; unread: number } | null }) => {
-        if (cancelled || !json.data) return;
-        setItems(json.data.notifications);
-        setUnread(json.data.unread);
-      })
-      .catch(() => {
-        // A silent failure here is fine — the bell just stays empty.
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
   useEffect(() => {
     function onClickAway(e: MouseEvent) {
@@ -83,8 +53,8 @@ export default function NotificationsBell() {
     setOpen(next);
 
     if (next) {
-      await load();
-      if (unread === 0) return;
+      const data = await load();
+      if (!data || data.unread === 0) return;
 
       // Opening the panel counts as reading it.
       const res = await fetch("/api/notifications", {
