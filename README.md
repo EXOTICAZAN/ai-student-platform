@@ -2,7 +2,7 @@
 
 ## Pakistan Student Hub MVP
 
-Authenticated dashboard routes `/dashboard/admissions`, `/dashboard/exam-prep`, `/dashboard/pakistan-guidance`, and `/dashboard/budget` provide a source-attributed planning experience for Pakistani students. The admissions page intentionally ships a small reference set and labels deadlines/eligibility as requiring verification; it is not an exhaustive or live directory. Scholarship browsing remains backward-compatible and now includes a Pakistan/HEC verification guide.
+Authenticated dashboard routes `/dashboard/admissions` and `/dashboard/exam-prep` provide a source-attributed planning experience for Pakistani students. The admissions page intentionally ships a small reference set and labels deadlines/eligibility as requiring verification; it is not an exhaustive or live directory. Scholarship browsing remains backward-compatible and now includes a Pakistan/HEC verification guide.
 
 Before enabling per-user admissions tracking in a deployed environment, apply `supabase/migrations/012_pakistan_student_hub.sql`. The migration creates a curated reference table, owner-scoped application statuses, and RLS policies. No secrets or external API calls are required. Reference rows should be human-curated and verified against official university/regulator sources before adding them.
 
