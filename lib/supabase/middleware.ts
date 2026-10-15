@@ -1,14 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-function clearAuthCookies(response: NextResponse, request: NextRequest) {
-  for (const cookie of request.cookies.getAll()) {
-    if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
-      response.cookies.delete(cookie.name);
-    }
-  }
-}
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -31,24 +23,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Read the session locally. Calling getUser() here for every browser/API
+  // request hits the Auth service repeatedly and can exhaust its rate limit,
+  // especially while React Strict Mode duplicates development effects.
   const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  // A rotated refresh token can be invalidated by an old tab or a duplicate
-  // callback. Remove the unusable session instead of letting every request
-  // repeatedly log the same error and return inconsistent 401 responses.
-  if (error?.code === "refresh_token_already_used" || error?.code === "refresh_token_not_found") {
-    clearAuthCookies(supabaseResponse, request);
-    if (!request.nextUrl.pathname.startsWith("/login")) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("error", "session");
-      return NextResponse.redirect(url, { headers: supabaseResponse.headers });
-    }
-    return supabaseResponse;
-  }
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const path = request.nextUrl.pathname;
   const isAuthPage =
